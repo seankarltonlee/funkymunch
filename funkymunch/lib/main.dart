@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert' as convert;
 import 'dart:math';
-import 'dart:io';
 import 'dart:async';
 
 // Third party
@@ -9,10 +8,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 
 // Local files
 import 'businesses.dart';
+import 'revenuecat.dart';
 
 // Main is the starting point for all flutter apps
 void main() {
@@ -56,23 +55,10 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
   String restaurantLatitude;
   String restaurantLongitude;
   String yelpURL;
-
   bool showDirections = false;
 
-  // In-app purchases
-  final InAppPurchaseConnection _iap = InAppPurchaseConnection.instance;
-
-  /// Products for sale
-  List<ProductDetails> _products = [];
-
-  /// Past purchases
-  List<PurchaseDetails> _purchases = [];
-
-  /// Updates to purchases
-  StreamSubscription<List<PurchaseDetails>> _subscription;
-
-  // number of clicks
-  int _credits = 0;
+  PayClient payClient = PayClient();
+  var offerings;
 
   Future<void> launchMapsURL() async {
     String mapsURL =
@@ -144,107 +130,17 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
     });
   }
 
-  /// Initialize data
-  void _initialize() async {
-    // Check availability of In App Purchases
-    var _available = await _iap.isAvailable();
-    print(_available);
-    if (_available) {
-      await _getProducts();
-      await _getPastPurchases();
-
-      // Verify and deliver a purchase with your own business logic
-      _verifyPurchase();
-
-      // Listen to new purchases
-      setState(() {
-        _subscription = _iap.purchaseUpdatedStream.listen(
-          (data) => setState(
-            () {
-              print('NEW PURCHASE');
-              _purchases.addAll(data);
-              _verifyPurchase();
-            },
-          ),
-          onError: (error) {
-            print(error);
-          },
-        );
-      });
-    }
-  }
-
-  /// Purchase a product
-  /// Purchase a product
-  void _buyProduct(ProductDetails prod) {
-    print(prod);
-    try {
-      final PurchaseParam purchaseParam = PurchaseParam(
-        productDetails: prod,
-        sandboxTesting: true,
-      );
-      // For one time purchase
-      print(purchaseParam.productDetails.id);
-      print(purchaseParam.productDetails.price);
-      print(purchaseParam.productDetails.title);
-      _iap.buyNonConsumable(purchaseParam: purchaseParam);
-      print('purchase successful');
-    } catch (e) {
-      print(e);
-    }
-  }
-
-  /// Get all products available for sale
-  Future<void> _getProducts() async {
-    Set<String> ids = Set.from(['FunkymunchSubscription', 'test_a']);
-    ProductDetailsResponse response = await _iap.queryProductDetails(ids);
-
-    setState(() {
-      _products = response.productDetails;
-
-      print(_products[0].description);
-    });
-  }
-
-  /// Gets past purchases
-  Future<void> _getPastPurchases() async {
-    QueryPurchaseDetailsResponse response = await _iap.queryPastPurchases();
-
-    for (PurchaseDetails purchase in response.pastPurchases) {
-      if (Platform.isIOS) {
-        InAppPurchaseConnection.instance.completePurchase(purchase);
-      }
-    }
-
-    setState(() {
-      _purchases = response.pastPurchases;
-    });
-  }
-
-  /// Returns purchase of specific product ID
-  PurchaseDetails _hasPurchased(String productID) {
-    return _purchases.firstWhere((purchase) => purchase.productID == productID,
-        orElse: () => null);
-  }
-
-  /// Your own business logic to setup a consumable
-  void _verifyPurchase() {
-    PurchaseDetails purchase = _hasPurchased('FunkymunchSubscription');
-
-    // TODO serverside verification & record consumable in the database
-
-    if (purchase != null && purchase.status == PurchaseStatus.purchased) {
-      setState(() {
-        _credits = 10;
-      });
-    }
-  }
-
   @override
   void initState() {
     // init
     super.initState();
-    _initialize();
+    setState(() {
+      payClient.getOfferings().then((x) {
+        print('calling from main');
+        print(x);
+        offerings = x;
+      });
+    });
 
     _getCurrentLocation().then((x) {
       getBusinessNames();
@@ -347,12 +243,13 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
               ),
             ),
             Padding(
-              padding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 50.0),
+              padding: EdgeInsets.symmetric(vertical: 30.0, horizontal: 50.0),
               child: Container(
-                margin: EdgeInsets.only(bottom: 20.0),
+                margin: EdgeInsets.only(bottom: 50.0),
                 child: RaisedButton(
                   onPressed: () {
-                    _buyProduct(_products[0]);
+                    payClient
+                        .makePurchase(offerings.current.availablePackages[0]);
                   },
                   elevation: 7.0,
                   padding: EdgeInsets.all(20.0),
@@ -361,25 +258,13 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
                     side: BorderSide(color: Colors.red),
                   ),
                   child: Text(
-                    'Buy credits',
+                    'Make purchase',
                     style: GoogleFonts.roboto(
                       fontSize: 28.0,
                     ),
                   ),
                 ),
               ),
-            ),
-            Text(
-              "$_credits",
-              style: TextStyle(fontSize: 20),
-            ),
-            Text(
-              "$_subscription",
-              style: TextStyle(fontSize: 20),
-            ),
-            Text(
-              "$_products",
-              style: TextStyle(fontSize: 20),
             ),
           ],
         ),
