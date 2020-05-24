@@ -8,6 +8,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:audioplayers/audio_cache.dart';
+import 'package:transparent_image/transparent_image.dart';
 
 // Local files
 import 'businesses.dart';
@@ -24,10 +27,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       home: RandomRestaurantPicker(),
       theme: ThemeData(
-        primaryColor: Colors.black,
+        primaryColor: Colors.redAccent,
         textTheme: GoogleFonts.ebGaramondTextTheme(Theme.of(context).textTheme),
         buttonTheme: ButtonThemeData(
-          buttonColor: Colors.deepPurpleAccent[700], //  <-- dark color
+          buttonColor: Colors.yellowAccent[700], //  <-- dark color
           textTheme:
               ButtonTextTheme.primary, //  <-- this auto selects the right color
         ),
@@ -46,7 +49,7 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
   List<dynamic> businessNames;
   String randomName;
   String introMessage = "";
-  Image resturantImage = Image.asset('images/thumbsup.webp');
+  dynamic resturantImage = Image.asset('images/thumbsup.webp');
 
   final Geolocator geolocator = Geolocator()..forceAndroidLocationManager;
   Position currentPosition;
@@ -58,7 +61,10 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
   bool showDirections = false;
 
   PayClient payClient = PayClient();
+  int coins = 0;
   var offerings;
+
+  AudioCache audioCache = AudioCache();
 
   Future<void> launchMapsURL() async {
     String mapsURL =
@@ -79,13 +85,19 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
   }
 
   Future<dynamic> getRestaurants() async {
-    // TODO: Should use a query string generator
-    String url =
-        "https://api.yelp.com/v3/businesses/search?limit=50&term=food&radius=10000&open_now=true&latitude=$latitude&longitude=$longitude";
+    var queryParameters = {
+      'limit': '50',
+      'radius': '10000',
+      'open_now': 'true',
+      'latitude': '$latitude',
+      'longitude': '$longitude'
+    };
+    var uri =
+        Uri.https('api.yelp.com', '/v3/businesses/search', queryParameters);
     final yelpApiKey =
         "hZRmj7nxnvZ-Pc8HCxeIxLjsfLIQlKPb7v8i0qwugjqtWg4lPayY6FHBePq1kpeDq0a-CdoPxWfledc9rdg8XYPbU_yVsXgtvHJYjXnmbeWx3POCbwInl3a-0OSfXnYx";
     var response =
-        await http.get(url, headers: {"Authorization": "Bearer $yelpApiKey"});
+        await http.get(uri, headers: {"Authorization": "Bearer $yelpApiKey"});
     if (response.statusCode == 200) {
       var jsonResponse = convert.jsonDecode(response.body);
       var businesses = jsonResponse['businesses'];
@@ -116,6 +128,70 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
     });
   }
 
+  void showSubscriptionOffering() {
+    showModalBottomSheet(
+        context: context,
+        builder: (BuildContext bc) {
+          return Container(
+            height: MediaQuery.of(context).size.height * .75,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Text("Edit Traip"),
+                      // Spacer takes up width between these widgets in a row
+                      Spacer(),
+                      IconButton(
+                        icon: Icon(
+                          Icons.cancel,
+                          color: Colors.orange,
+                          size: 25,
+                        ),
+                        onPressed: () {
+                          // Pops widget off, since it's just another widget on top of our view
+                          Navigator.of(context).pop();
+                        },
+                      )
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                            vertical: 30.0, horizontal: 50.0),
+                        child: Container(
+                          margin: EdgeInsets.only(bottom: 50.0),
+                          child: RaisedButton(
+                            onPressed: () {
+                              payClient.makePurchase(
+                                  offerings.current.availablePackages[0]);
+                            },
+                            elevation: 7.0,
+                            padding: EdgeInsets.all(20.0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(35.0),
+                            ),
+                            child: Text(
+                              'Subscribe Now',
+                              style: GoogleFonts.roboto(
+                                fontSize: 24.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
+          );
+        });
+  }
+
   void getRandomBusiness() {
     var randomBusiness = businessNames[_random.nextInt(businessNames.length)];
     setState(() {
@@ -123,9 +199,12 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
       yelpURL = randomBusiness.yelpURL;
       restaurantLatitude = randomBusiness.latitude;
       restaurantLongitude = randomBusiness.longitude;
-      introMessage = 'You should eat at ${randomName}';
-      resturantImage =
-          Image.network(randomBusiness.imageURL, fit: BoxFit.fitWidth);
+      introMessage = 'You should eat at \n ${randomName}';
+      resturantImage = FadeInImage.memoryNetwork(
+        placeholder: kTransparentImage,
+        image: randomBusiness.imageURL,
+        fadeInDuration: const Duration(milliseconds: 300),
+      );
       showDirections = true;
     });
   }
@@ -173,7 +252,7 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
             Expanded(
               flex: 1,
               child: Container(
-                margin: EdgeInsets.only(top: 35.0),
+                margin: EdgeInsets.only(top: 15.0),
                 child: resturantImage,
               ),
             ),
@@ -225,40 +304,23 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
                 margin: EdgeInsets.only(bottom: 50.0),
                 child: RaisedButton(
                   onPressed: () {
-                    getRandomBusiness();
+                    audioCache.play("button-3.mp3");
+                    if (coins < 3) {
+                      getRandomBusiness();
+                      setState(() {
+                        coins++;
+                      });
+                    } else {
+                      showSubscriptionOffering();
+                    }
                   },
                   elevation: 7.0,
                   padding: EdgeInsets.all(20.0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(35.0),
-                    side: BorderSide(color: Colors.red),
                   ),
                   child: Text(
                     'Suprise me!',
-                    style: GoogleFonts.roboto(
-                      fontSize: 28.0,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 30.0, horizontal: 50.0),
-              child: Container(
-                margin: EdgeInsets.only(bottom: 50.0),
-                child: RaisedButton(
-                  onPressed: () {
-                    payClient
-                        .makePurchase(offerings.current.availablePackages[0]);
-                  },
-                  elevation: 7.0,
-                  padding: EdgeInsets.all(20.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(35.0),
-                    side: BorderSide(color: Colors.red),
-                  ),
-                  child: Text(
-                    'Make purchase',
                     style: GoogleFonts.roboto(
                       fontSize: 28.0,
                     ),
