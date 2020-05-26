@@ -66,6 +66,9 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
 
   AudioCache audioCache = AudioCache();
 
+  // Futurebuilder stuff
+  Future _currentLocation;
+
   Future<void> launchMapsURL() async {
     String mapsURL =
         'https://www.google.com/maps/search/?api=1&query=$restaurantLatitude,$restaurantLongitude';
@@ -106,6 +109,22 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
     // TODO: Add some error handling
   }
 
+  @override
+  void initState() {
+    // init
+    super.initState();
+    setState(() {
+      payClient.getOfferings().then((x) {
+        print('calling from main');
+        print(x);
+        offerings = x;
+      });
+    });
+    _currentLocation = _getCurrentLocation().then((x) {
+      getBusinessNames();
+    });
+  }
+
   void getBusinessNames() {
     setState(() {
       getRestaurants().then((businesses) {
@@ -116,7 +135,7 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
     });
   }
 
-  Future<void> _getCurrentLocation() async {
+  Future _getCurrentLocation() async {
     Position position = await geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.best);
     print("Getting position");
@@ -126,6 +145,7 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
       latitude = currentPosition.latitude.toString();
       longitude = currentPosition.longitude.toString();
     });
+    return position;
   }
 
   void showSubscriptionOffering() {
@@ -210,23 +230,6 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
   }
 
   @override
-  void initState() {
-    // init
-    super.initState();
-    setState(() {
-      payClient.getOfferings().then((x) {
-        print('calling from main');
-        print(x);
-        offerings = x;
-      });
-    });
-
-    _getCurrentLocation().then((x) {
-      getBusinessNames();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -245,92 +248,115 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
         ),
       ),
       body: SafeArea(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Expanded(
-              flex: 1,
-              child: Container(
-                margin: EdgeInsets.only(top: 15.0),
-                child: resturantImage,
-              ),
-            ),
-            Padding(
-                padding: EdgeInsets.all(15),
-                child: Text(
-                  introMessage,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(height: 1.5, fontSize: 30),
-                )),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Visibility(
-                  visible: showDirections,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 15.0),
-                    child: FlatButton(
-                      onPressed: () {
-                        launchMapsURL();
-                      },
+          child: FutureBuilder(
+        future: _currentLocation,
+        builder: (context, snapshot) {
+          switch (snapshot.connectionState) {
+            case ConnectionState.active:
+              return Text('active');
+            case ConnectionState.waiting:
+              return Container(
+                child: Center(
+                  child: SpinKitCubeGrid(
+                    color: Colors.redAccent,
+                    size: 100.0,
+                  ),
+                ),
+              );
+            case ConnectionState.none:
+              return Text('none');
+            case ConnectionState.done:
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      margin: EdgeInsets.only(top: 15.0),
+                      child: resturantImage,
+                    ),
+                  ),
+                  Padding(
+                      padding: EdgeInsets.all(15),
                       child: Text(
-                        'Get directions',
-                        style: TextStyle(fontSize: 20),
+                        introMessage,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(height: 1.5, fontSize: 30),
+                      )),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Visibility(
+                        visible: showDirections,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 15.0),
+                          child: FlatButton(
+                            onPressed: () {
+                              launchMapsURL();
+                            },
+                            child: Text(
+                              'Get directions',
+                              style: TextStyle(fontSize: 20),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Visibility(
+                        visible: showDirections,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 15.0),
+                          child: FlatButton(
+                            onPressed: () {
+                              launchYelpURL();
+                            },
+                            child: Text(
+                              'See menu',
+                              style: TextStyle(fontSize: 20),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding:
+                        EdgeInsets.symmetric(vertical: 30.0, horizontal: 50.0),
+                    child: Container(
+                      margin: EdgeInsets.only(bottom: 50.0),
+                      child: RaisedButton(
+                        onPressed: () {
+                          audioCache.play("button-3.mp3");
+                          if (coins < 3) {
+                            getRandomBusiness();
+                            setState(() {
+                              coins++;
+                            });
+                          } else {
+                            showSubscriptionOffering();
+                          }
+                        },
+                        elevation: 7.0,
+                        padding: EdgeInsets.all(20.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(35.0),
+                        ),
+                        child: Text(
+                          'Suprise me!',
+                          style: GoogleFonts.roboto(
+                            fontSize: 28.0,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                Visibility(
-                  visible: showDirections,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 15.0),
-                    child: FlatButton(
-                      onPressed: () {
-                        launchYelpURL();
-                      },
-                      child: Text(
-                        'See menu',
-                        style: TextStyle(fontSize: 20),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 30.0, horizontal: 50.0),
-              child: Container(
-                margin: EdgeInsets.only(bottom: 50.0),
-                child: RaisedButton(
-                  onPressed: () {
-                    audioCache.play("button-3.mp3");
-                    if (coins < 3) {
-                      getRandomBusiness();
-                      setState(() {
-                        coins++;
-                      });
-                    } else {
-                      showSubscriptionOffering();
-                    }
-                  },
-                  elevation: 7.0,
-                  padding: EdgeInsets.all(20.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(35.0),
-                  ),
-                  child: Text(
-                    'Suprise me!',
-                    style: GoogleFonts.roboto(
-                      fontSize: 28.0,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+                ],
+              );
+            default:
+              return Text('default');
+          }
+        },
+      )),
     );
   }
 }
