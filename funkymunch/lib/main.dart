@@ -63,6 +63,7 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
   PayClient payClient = PayClient();
   int coins = 0;
   var offerings;
+  bool subscriptionActive;
 
   AudioCache audioCache = AudioCache();
 
@@ -118,6 +119,9 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
         print('calling from main');
         print(x);
         offerings = x;
+      });
+      payClient.getSubscriptionStatus().then((value) {
+        subscriptionActive = value;
       });
     });
     _currentLocation = _getCurrentLocation().then((x) {
@@ -188,6 +192,10 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
                             onPressed: () {
                               payClient.makePurchase(
                                   offerings.current.availablePackages[0]);
+                              setState(() {
+                                subscriptionActive =
+                                    payClient.getSubscriptionStatus();
+                              });
                             },
                             elevation: 7.0,
                             padding: EdgeInsets.all(20.0),
@@ -327,7 +335,7 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
                       child: RaisedButton(
                         onPressed: () {
                           audioCache.play("button-3.mp3");
-                          if (coins < 3) {
+                          if (coins < 3 || subscriptionActive) {
                             getRandomBusiness();
                             setState(() {
                               coins++;
@@ -343,7 +351,7 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
                         ),
                         child: Text(
                           'Suprise me!',
-                          style: GoogleFonts.roboto(
+                          style: GoogleFonts.ebGaramond(
                             fontSize: 28.0,
                           ),
                         ),

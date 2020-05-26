@@ -28,6 +28,24 @@ class PayClient {
     }
   }
 
+  getSubscriptionStatus() async {
+    try {
+      PurchaserInfo purchaserInfo = await Purchases.getPurchaserInfo();
+      print(purchaserInfo.entitlements.all);
+      bool subIsActive =
+          purchaserInfo.entitlements.all["FunkymunchSubscription"].isActive;
+      if (subIsActive) {
+        // Grant user "pro" access
+        print('hitting true');
+        return true;
+      }
+    } on PlatformException catch (e) {
+      // Error fetching purchaser info
+      print(e);
+    }
+    return false;
+  }
+
   makePurchase(package) async {
     try {
       PurchaserInfo purchaserInfo = await Purchases.purchasePackage(package);
