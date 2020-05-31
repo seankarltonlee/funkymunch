@@ -224,20 +224,18 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
                         child: Container(
                           margin: EdgeInsets.only(bottom: 50.0),
                           child: RaisedButton(
-                            onPressed: () {
-                              payClient
-                                  .makePurchase(
-                                      offerings.current.availablePackages[0])
-                                  .then(() {
+                            onPressed: () async {
+                              var purchaseResult = await payClient.makePurchase(
+                                  offerings.current.availablePackages[0]);
+                              var subStatus =
+                                  await payClient.getSubscriptionStatus();
+                              print(purchaseResult);
+                              if (subStatus) {
                                 setState(() {
-                                  payClient
-                                      .getSubscriptionStatus()
-                                      .then((value) {
-                                    print(value);
-                                    subscriptionActive = value;
-                                  });
+                                  print('Making subscription active');
+                                  subscriptionActive = subStatus;
                                 });
-                              });
+                              }
                             },
                             elevation: 7.0,
                             padding: EdgeInsets.all(20.0),
