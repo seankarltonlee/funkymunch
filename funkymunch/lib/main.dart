@@ -152,6 +152,27 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
     return position;
   }
 
+  void getRandomBusiness() async {
+    var randomBusiness = businessNames[_random.nextInt(businessNames.length)];
+    setState(() {
+      randomName = randomBusiness.name;
+      yelpURL = randomBusiness.yelpURL;
+      restaurantLatitude = randomBusiness.latitude;
+      restaurantLongitude = randomBusiness.longitude;
+      introMessage = 'You should eat at \n ${randomName}';
+      resturantImage = FadeInImage.memoryNetwork(
+        placeholder: kTransparentImage,
+        image: randomBusiness.imageURL,
+        fadeInDuration: const Duration(milliseconds: 300),
+      );
+      showDirections = true;
+      payClient.getSubscriptionStatus().then((value) {
+        print(value);
+        subscriptionActive = value;
+      });
+    });
+  }
+
   void showSubscriptionOffering() {
     showModalBottomSheet(
         context: context,
@@ -164,7 +185,6 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
                 children: <Widget>[
                   Row(
                     children: <Widget>[
-                      Text("Edit Traip"),
                       // Spacer takes up width between these widgets in a row
                       Spacer(),
                       IconButton(
@@ -181,6 +201,21 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
                     ],
                   ),
                   Row(
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: Container(
+                          margin: EdgeInsets.only(top: 15.0),
+                          child: Text(
+                            "Stop wasting time. \n Decide what you want to eat NOW. \n START your subscription to a better life",
+                            style: TextStyle(height: 1.5, fontSize: 23),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Padding(
@@ -190,11 +225,18 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
                           margin: EdgeInsets.only(bottom: 50.0),
                           child: RaisedButton(
                             onPressed: () {
-                              payClient.makePurchase(
-                                  offerings.current.availablePackages[0]);
-                              setState(() {
-                                subscriptionActive =
-                                    payClient.getSubscriptionStatus();
+                              payClient
+                                  .makePurchase(
+                                      offerings.current.availablePackages[0])
+                                  .then(() {
+                                setState(() {
+                                  payClient
+                                      .getSubscriptionStatus()
+                                      .then((value) {
+                                    print(value);
+                                    subscriptionActive = value;
+                                  });
+                                });
                               });
                             },
                             elevation: 7.0,
@@ -218,23 +260,6 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
             ),
           );
         });
-  }
-
-  void getRandomBusiness() {
-    var randomBusiness = businessNames[_random.nextInt(businessNames.length)];
-    setState(() {
-      randomName = randomBusiness.name;
-      yelpURL = randomBusiness.yelpURL;
-      restaurantLatitude = randomBusiness.latitude;
-      restaurantLongitude = randomBusiness.longitude;
-      introMessage = 'You should eat at \n ${randomName}';
-      resturantImage = FadeInImage.memoryNetwork(
-        placeholder: kTransparentImage,
-        image: randomBusiness.imageURL,
-        fadeInDuration: const Duration(milliseconds: 300),
-      );
-      showDirections = true;
-    });
   }
 
   @override
@@ -264,11 +289,18 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
               return Text('active');
             case ConnectionState.waiting:
               return Container(
-                child: Center(
-                  child: SpinKitCubeGrid(
-                    color: Colors.redAccent,
-                    size: 100.0,
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Center(
+                      child: SpinKitCubeGrid(
+                        color: Colors.redAccent,
+                        size: 75.0,
+                      ),
+                    ),
+                    Text("Foraging for open restaurants around you...",
+                        style: TextStyle(height: 5, fontSize: 20)),
+                  ],
                 ),
               );
             case ConnectionState.none:
@@ -350,9 +382,9 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
                           borderRadius: BorderRadius.circular(35.0),
                         ),
                         child: Text(
-                          'Suprise me!',
+                          'I\'m feeling lucky',
                           style: GoogleFonts.ebGaramond(
-                            fontSize: 28.0,
+                            fontSize: 25.0,
                           ),
                         ),
                       ),

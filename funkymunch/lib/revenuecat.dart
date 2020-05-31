@@ -31,12 +31,11 @@ class PayClient {
   getSubscriptionStatus() async {
     try {
       PurchaserInfo purchaserInfo = await Purchases.getPurchaserInfo();
-      print(purchaserInfo.entitlements.all);
+      // print(purchaserInfo.entitlements.all);
       bool subIsActive =
           purchaserInfo.entitlements.all["FunkymunchSubscription"].isActive;
       if (subIsActive) {
         // Grant user "pro" access
-        print('hitting true');
         return true;
       }
     } on PlatformException catch (e) {
@@ -49,8 +48,7 @@ class PayClient {
   makePurchase(package) async {
     try {
       PurchaserInfo purchaserInfo = await Purchases.purchasePackage(package);
-      if (purchaserInfo
-          .entitlements.all["my_entitlement_identifier"].isActive) {
+      if (purchaserInfo.entitlements.all["FunkymunchSubscription"].isActive) {
         // Unlock that great "pro" content
         print(purchaserInfo);
       }
