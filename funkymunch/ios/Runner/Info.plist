@@ -23,11 +23,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>We need access to give you the best recommendation!</string>
+	<string>We need your location to give you the best restaurant recommendations that are nearby, and OPEN!</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Neededtoaccesslocation</string>
+	<string>We need your location to give you the best restaurant recommendations that are nearby, and OPEN!</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Weneedaccesstogiveyouthebestrecommendation!</string>
+	<string>We need your location to give you the best restaurant recommendations that are nearby, and OPEN!</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
