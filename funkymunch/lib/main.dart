@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert' as convert;
 import 'dart:math';
@@ -178,7 +179,7 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
         context: context,
         builder: (BuildContext bc) {
           return Container(
-            height: MediaQuery.of(context).size.height * .75,
+            height: MediaQuery.of(context).size.height * .90,
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: Column(
@@ -205,9 +206,9 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
                       Expanded(
                         flex: 1,
                         child: Container(
-                          margin: EdgeInsets.only(top: 15.0),
+                          margin: EdgeInsets.only(top: 5.0),
                           child: Text(
-                            "Stop wasting time. \n Decide what you want to eat NOW. \n START your subscription to a better life",
+                            "STOP wasting time. \n Decide what you want to eat NOW. \n START your Funkymunch subscription to get UNLIMITED food ideas",
                             style: TextStyle(height: 1.5, fontSize: 23),
                             textAlign: TextAlign.center,
                           ),
@@ -222,7 +223,7 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
                         padding: EdgeInsets.symmetric(
                             vertical: 30.0, horizontal: 50.0),
                         child: Container(
-                          margin: EdgeInsets.only(bottom: 50.0),
+                          margin: EdgeInsets.only(bottom: 10.0),
                           child: RaisedButton(
                             onPressed: () async {
                               var purchaseResult = await payClient.makePurchase(
@@ -252,7 +253,44 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
                         ),
                       ),
                     ],
-                  )
+                  ),
+                  RichText(
+                    text: new TextSpan(
+                      children: [
+                        new TextSpan(
+                            style: TextStyle(fontSize: 8, color: Colors.grey),
+                            text:
+                                'A \$2.99/week purchase will be applied to your iTunes account on confirmation. '
+                                'Subscriptions will automatically renew unless canceled within 24-hours before the end of the current period.'
+                                ' You can cancel anytime with your iTunes account settings. Any unused portion of a free trial will be forfeited if you purchase a subscription. '
+                                'For more information, see our '),
+                        new TextSpan(
+                          style:
+                              TextStyle(fontSize: 8, color: Colors.blueAccent),
+                          text: 'Terms of Service ',
+                          recognizer: new TapGestureRecognizer()
+                            ..onTap = () {
+                              launch(
+                                  'https://seankarltonlee.github.io/funkymunch.github.io/termsofuse/tou.html');
+                            },
+                        ),
+                        new TextSpan(
+                          style: TextStyle(fontSize: 8, color: Colors.grey),
+                          text: 'and ',
+                        ),
+                        new TextSpan(
+                          style:
+                              TextStyle(fontSize: 8, color: Colors.blueAccent),
+                          text: 'Privacy Policy.',
+                          recognizer: new TapGestureRecognizer()
+                            ..onTap = () {
+                              launch(
+                                  'https://seankarltonlee.github.io/funkymunch.github.io/');
+                            },
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
