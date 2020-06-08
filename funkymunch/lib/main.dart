@@ -141,15 +141,28 @@ class _RandomRestaurantPickerState extends State<RandomRestaurantPicker> {
   }
 
   Future _getCurrentLocation() async {
-    Position position = await geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.best);
-    print("Getting position");
-    print(position);
-    setState(() {
-      currentPosition = position;
-      latitude = currentPosition.latitude.toString();
-      longitude = currentPosition.longitude.toString();
-    });
+    Position position;
+    GeolocationStatus geolocationStatus =
+        await geolocator.checkGeolocationPermissionStatus();
+    if (geolocationStatus == GeolocationStatus.granted) {
+      Position position = await geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.best);
+      print("Getting position");
+      print(position);
+      setState(() {
+        // Don't really need to be setting currentPosition
+        currentPosition = position;
+        latitude = currentPosition.latitude.toString();
+        longitude = currentPosition.longitude.toString();
+      });
+    } else {
+      print("Location access not permitted");
+      setState(() {
+        latitude = "37.7749";
+        longitude = "122.4194";
+      });
+    }
+
     return position;
   }
 
